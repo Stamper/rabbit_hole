@@ -1,0 +1,4 @@
+environs==9.4.0
+pathlib==1.0.1
+pika==1.2.0
+pydantic==1.9.0
