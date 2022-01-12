@@ -1,6 +1,5 @@
 import threading
 from typing import Dict
-from time import sleep
 
 from commands import COMMANDS
 from loggers import logger
@@ -11,10 +10,10 @@ from pika.exceptions import (
     ConnectionClosedByBroker,
 )
 from pydantic import ValidationError
-from schemas import Package
+from schemas import Package, Storage
 from settings import QUEUE_NAME, RABBITMQ_HOST, THREADS
 
-storage: Dict[str, str] = {}
+storage: Dict[str, str] = Storage()
 lock = threading.Lock()
 
 
@@ -22,7 +21,6 @@ def on_message_callback(ch, method, _properties, body):
     t_id = threading.get_ident()
     try:
         package = Package.parse_raw(body)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
         logger.debug(f"Thread-{t_id}: {package}")
 
     except ValidationError:
@@ -35,6 +33,7 @@ def on_message_callback(ch, method, _properties, body):
         params["storage"] = storage
         with lock:
             processor(**params)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     except KeyError:
         logger.error(f"Command is not implemented: {package.command}")
